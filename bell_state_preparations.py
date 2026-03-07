@@ -10,6 +10,18 @@ Uses Hadamard gate (h), controlled-NOT gate (cx), and Pauli X,Z gates (x, z)
 """
 
 from qiskit import QuantumCircuit
+from qiskit.primitives import StatevectorSampler
+
+
+def evaluate_bell_state_results(qc: QuantumCircuit(2), SHOTS=1024):
+    qc.measure_all()
+    sampler = StatevectorSampler()
+    result = sampler.run([qc], shots=SHOTS).result()
+    counts = result[0].data.meas.get_counts()
+    for key in counts.keys():
+        percent = counts[key] / SHOTS * 100
+        print(f"Circuit measured state '{key}' at rate {percent:.1f}%")
+    print("\n")
 
 
 def prepare_phi_plus(qc: QuantumCircuit(2)):
@@ -42,7 +54,7 @@ def prepare_psi_minus(qc: QuantumCircuit(2)):
 
 
 def prepare_all_bell_states(index):
-    print(f"Preparing Bell state {i+1}...")
+    print(f"Preparing Bell state {index+1}...")
     qc = QuantumCircuit(2)
     if index == 0:
         prepare_phi_plus(qc)
