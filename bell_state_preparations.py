@@ -1,50 +1,61 @@
 """
-Define functions to prepare 2-qubit circuits into Bell states
+Define functions to prepare 2-qubit Bell states.
 
-Phi Plus: |Φ+⟩ = 1/√2 (|00⟩ + |11⟩)
-Phi Minus: |Φ-⟩ = 1/√2 (|00⟩ - |11⟩)
-Psi Plus: |Ψ+⟩ = 1/√2 (|01⟩ + |10⟩)
-Psi Minus: |Ψ-⟩ = 1/√2 (|01⟩ - |10⟩)
-
-Uses Hadamard gate (h), controlled-NOT gate (cx), and Pauli X,Z gates (x, z)
+Phi Plus: |Phi+> = 1/sqrt(2) (|00> + |11>)
+Phi Minus: |Phi-> = 1/sqrt(2) (|00> - |11>)
+Psi Plus: |Psi+> = 1/sqrt(2) (|01> + |10>)
+Psi Minus: |Psi-> = 1/sqrt(2) (|01> - |10>)
 """
+
+from __future__ import annotations
 
 from qiskit import QuantumCircuit
 from qiskit.primitives import StatevectorSampler
 
 
-def evaluate_bell_state_results(qc: QuantumCircuit(2), SHOTS=1024):
-    qc.measure_all()
+SHOTS_DEFAULT = 1024
+BELL_STATE_NAMES = ("Phi+", "Phi-", "Psi+", "Psi-")
+
+
+def evaluate_bell_state_results(
+    qc: QuantumCircuit, shots: int = SHOTS_DEFAULT
+) -> dict[str, int]:
+    measured_circuit = qc.copy()
+    measured_circuit.measure_all()
+
     sampler = StatevectorSampler()
-    result = sampler.run([qc], shots=SHOTS).result()
+    result = sampler.run([measured_circuit], shots=shots).result()
     counts = result[0].data.meas.get_counts()
-    for key in counts.keys():
-        percent = counts[key] / SHOTS * 100
+
+    for key, value in counts.items():
+        percent = value / shots * 100
         print(f"Circuit measured state '{key}' at rate {percent:.1f}%")
-    print("\n")
+    print()
+
+    return counts
 
 
-def prepare_phi_plus(qc: QuantumCircuit(2)):
+def prepare_phi_plus(qc: QuantumCircuit) -> QuantumCircuit:
     qc.h(0)
     qc.cx(0, 1)
     return qc
 
 
-def prepare_phi_minus(qc: QuantumCircuit(2)):
+def prepare_phi_minus(qc: QuantumCircuit) -> QuantumCircuit:
     qc.x(0)
     qc.h(0)
     qc.cx(0, 1)
     return qc
 
 
-def prepare_psi_plus(qc: QuantumCircuit(2)):
+def prepare_psi_plus(qc: QuantumCircuit) -> QuantumCircuit:
     qc.x(1)
     qc.h(0)
     qc.cx(0, 1)
     return qc
 
 
-def prepare_psi_minus(qc: QuantumCircuit(2)):
+def prepare_psi_minus(qc: QuantumCircuit) -> QuantumCircuit:
     qc.x(1)
     qc.h(0)
     qc.z(0)
@@ -53,32 +64,38 @@ def prepare_psi_minus(qc: QuantumCircuit(2)):
     return qc
 
 
-def prepare_all_bell_states(index):
-    print(f"Preparing Bell state {index+1}...")
-    qc = QuantumCircuit(2)
+def prepare_all_bell_states(index: int) -> QuantumCircuit:
     if index == 0:
-        prepare_phi_plus(qc)
+        print(f"Preparing Bell state {index + 1} ({BELL_STATE_NAMES[index]})...")
+        return prepare_phi_plus(QuantumCircuit(2))
     if index == 1:
-        prepare_phi_minus(qc)
+        print(f"Preparing Bell state {index + 1} ({BELL_STATE_NAMES[index]})...")
+        return prepare_phi_minus(QuantumCircuit(2))
     if index == 2:
-        prepare_psi_plus(qc)
+        print(f"Preparing Bell state {index + 1} ({BELL_STATE_NAMES[index]})...")
+        return prepare_psi_plus(QuantumCircuit(2))
     if index == 3:
-        prepare_psi_minus(qc)
-    return qc
+        print(f"Preparing Bell state {index + 1} ({BELL_STATE_NAMES[index]})...")
+        return prepare_psi_minus(QuantumCircuit(2))
+
+    raise ValueError(
+        f"Bell state index must be between 0 and 3 inclusive, received {index}."
+    )
 
 
-def prepare_circuit_for_unique_measurement(qc: QuantumCircuit(2)):
+def prepare_circuit_for_unique_measurement(qc: QuantumCircuit) -> QuantumCircuit:
     """
-    Prepare Bell states such that each of the 4 maps to a unique measurement
+    Convert Bell states into unique computational-basis measurements.
 
-    Phi Plus: |Φ+⟩ -> |00⟩
-    Phi Minus: |Φ-⟩ -> |01⟩
-    Psi Plus: |Ψ+⟩ -> |10⟩
-    Psi Minus: |Ψ-⟩ -> |11⟩
+    Phi Plus: |Phi+> -> |00>
+    Phi Minus: |Phi-> -> |01>
+    Psi Plus: |Psi+> -> |10>
+    Psi Minus: |Psi-> -> |11>
     """
 
-    qc.cx(0, 1)
-    qc.h(0)
-    qc.z(0)
-    qc.z(1)
-    return qc
+    transformed_circuit = qc.copy()
+    transformed_circuit.cx(0, 1)
+    transformed_circuit.h(0)
+    transformed_circuit.z(0)
+    transformed_circuit.z(1)
+    return transformed_circuit
